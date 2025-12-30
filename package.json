@@ -1,0 +1,12 @@
+{
+  "name": "com.bnj.package-template",
+  "version": "1.0.0",
+  "displayName": "BNJ - Template",
+  "description": "This is the lovely description to this very useful package.",
+  "unity": "2020.3",
+  "author": {
+    "name": "SilentBenjiNinja",
+    "email": "silentbenjininja@github.com"
+  },
+  "licensesUrl": "https://www.gnu.org/licenses/gpl-3.0.en.html"
+}
