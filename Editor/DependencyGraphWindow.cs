@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -9,6 +10,7 @@ using Object = UnityEngine.Object;
 
 Future ideas: 
  * Drag & drop assets into window
+ * Get window tab icon to work
  * Group nodes to minimize connections crossing
  * Add color coding for different asset types
  * Use Unity's styles instead of hardcoded UI coloring for better integration
@@ -123,6 +125,26 @@ namespace bnj.dependency_graph.Editor
         #endregion
 
         #region Initialization
+        private void OnEnable()
+        {
+            EditorApplication.projectChanged += OnProjectChanged;
+            AssemblyReloadEvents.afterAssemblyReload += OnAssemblyReload;
+
+            SetWindowIcon();
+        }
+
+        private void OnDisable()
+        {
+            EditorApplication.projectChanged -= OnProjectChanged;
+            AssemblyReloadEvents.afterAssemblyReload -= OnAssemblyReload;
+
+            if (_solidColorTexture != null)
+            {
+                DestroyImmediate(_solidColorTexture);
+                _solidColorTexture = null;
+            }
+        }
+
         private void ShowGraphForAsset(string assetPath)
         {
             _targetAssetPath = assetPath;
@@ -138,23 +160,42 @@ namespace bnj.dependency_graph.Editor
 
             BuildDependencyGraph();
         }
-
-        private void OnEnable()
+        private void SetWindowIcon()
         {
-            EditorApplication.projectChanged += OnProjectChanged;
-            AssemblyReloadEvents.afterAssemblyReload += OnAssemblyReload;
+            // Get the path of this script file using the calling file path attribute trick
+            var scriptPath = GetScriptPath();
+            if (string.IsNullOrEmpty(scriptPath))
+                return;
+
+            var scriptDirectory = Path.GetDirectoryName(scriptPath);
+            var iconPath = Path.Combine(scriptDirectory, "..", "Gizmos", "diagram-64x.png");
+
+            // Normalize the path
+            iconPath = iconPath.Replace("\\", "/");
+
+            var icon = AssetDatabase.LoadAssetAtPath<Texture>(iconPath);
+            if (icon != null)
+            {
+                titleContent = new GUIContent("Dependency Graph", icon);
+            }
         }
 
-        private void OnDisable()
+        private string GetScriptPath([System.Runtime.CompilerServices.CallerFilePath] string sourceFilePath = "")
         {
-            EditorApplication.projectChanged -= OnProjectChanged;
-            AssemblyReloadEvents.afterAssemblyReload -= OnAssemblyReload;
-
-            if (_solidColorTexture != null)
+            // Convert absolute path to relative Unity path
+            if (sourceFilePath.Contains("Assets"))
             {
-                DestroyImmediate(_solidColorTexture);
-                _solidColorTexture = null;
+                var index = sourceFilePath.IndexOf("Assets");
+                return sourceFilePath.Substring(index).Replace("\\", "/");
             }
+
+            if (sourceFilePath.Contains("Packages"))
+            {
+                var index = sourceFilePath.IndexOf("Packages");
+                return sourceFilePath.Substring(index).Replace("\\", "/");
+            }
+
+            return null;
         }
 
         private void OnProjectChanged()
@@ -596,7 +637,7 @@ namespace bnj.dependency_graph.Editor
 
         private void DrawNodeLabel(DependencyNode node, Rect labelRect, float nodeSize)
         {
-            var assetName = System.IO.Path.GetFileNameWithoutExtension(node.AssetPath);
+            var assetName = Path.GetFileNameWithoutExtension(node.AssetPath);
             var labelStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = Mathf.RoundToInt(10 * _zoom),
@@ -671,7 +712,7 @@ namespace bnj.dependency_graph.Editor
 
             var asset = AssetDatabase.LoadAssetAtPath<Object>(_currentTooltip);
             var assetType = asset != null ? asset.GetType().Name : "Unknown";
-            var fileInfo = new System.IO.FileInfo(_currentTooltip);
+            var fileInfo = new FileInfo(_currentTooltip);
             var fileSize = fileInfo.Exists ? FormatFileSize(fileInfo.Length) : "N/A";
 
             var maxWidth = position.width * TooltipMaxWidthRatio;
