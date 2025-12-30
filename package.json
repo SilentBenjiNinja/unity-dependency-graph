@@ -1,8 +1,8 @@
 {
-  "name": "com.bnj.package-template",
+  "name": "com.bnj.dependency-graph",
   "version": "1.0.0",
-  "displayName": "BNJ - Template",
-  "description": "This is the lovely description to this very useful package.",
+  "displayName": "BNJ - Dependency Graph",
+  "description": "* Shows asset dependencies in graph-view (with sub-dependencies)\n* Adds \"Show Dependency Graph\" option when right-clicking assets in Project window",
   "unity": "2020.3",
   "author": {
     "name": "SilentBenjiNinja",
